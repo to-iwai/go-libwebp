@@ -19,12 +19,12 @@ type YUVAImage struct {
 	YStride      int
 	CStride      int
 	AStride      int
-	ColorSpace   ColorSpace
+	ColorSpace   image.ColorSpace
 	Rect         image.Rectangle
 }
 
 // NewYUVAImage creates and allocates image buffer.
-func NewYUVAImage(r image.Rectangle, c ColorSpace) (image *YUVAImage) {
+func NewYUVAImage(r image.Rectangle, c image.ColorSpace) (image *YUVAImage) {
 	yw, yh := r.Dx(), r.Dx()
 	cw, ch := ((r.Max.X+1)/2 - r.Min.X/2), ((r.Max.Y+1)/2 - r.Min.Y/2)
 
