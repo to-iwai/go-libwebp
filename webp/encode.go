@@ -532,45 +532,6 @@ func EncodeGray(w io.Writer, p *image.Gray, c *Config) (err error) {
 	return
 }
 
-// EncodeYUVA encodes and writes YUVA Image data into the writer as WebP.
-func EncodeYUVA(w io.Writer, img *YUVAImage, c *Config) (err error) {
-	if err = validateConfig(c); err != nil {
-		return
-	}
-
-	pic := C.calloc_WebPPicture()
-	if pic == nil {
-		return errors.New("Could not allocate webp picture")
-	}
-	defer C.free_WebPPicture(pic)
-
-	makeDestinationManager(w, pic)
-	defer releaseDestinationManager(pic)
-
-	if C.WebPPictureInit(pic) == 0 {
-		return errors.New("Could not initialize webp picture")
-	}
-	defer C.WebPPictureFree(pic)
-
-	pic.use_argb = 0
-	pic.colorspace = C.WebPEncCSP(img.ColorSpace)
-	pic.width = C.int(img.Rect.Dx())
-	pic.height = C.int(img.Rect.Dy())
-	pic.y_stride = C.int(img.YStride)
-	pic.uv_stride = C.int(img.CStride)
-	var a *C.uint8_t
-	y, u, v := (*C.uint8_t)(&img.Y[0]), (*C.uint8_t)(&img.Cb[0]), (*C.uint8_t)(&img.Cr[0])
-	if img.ColorSpace == YUV420A {
-		pic.a_stride = C.int(img.AStride)
-		a = (*C.uint8_t)(&img.A[0])
-	}
-
-	if C.webpEncodeYUVA(&c.c, pic, y, u, v, a) == 0 {
-		return fmt.Errorf("Encoding error: %d", pic.error_code)
-	}
-	return
-}
-
 func validateConfig(c *Config) error {
 	if C.WebPValidateConfig(&c.c) == 0 {
 		return errors.New("invalid configuration")

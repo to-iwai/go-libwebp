@@ -70,62 +70,6 @@ func GetFeatures(data []byte) (f *BitstreamFeatures, err error) {
 	return
 }
 
-// DecodeYUVA decodes WebP image into YUV image with alpha channel, and returns
-// it as *YUVAImage.
-func DecodeYUVA(data []byte, options *DecoderOptions) (img *YUVAImage, err error) {
-	config, err := initDecoderConfig(options)
-	if err != nil {
-		return nil, err
-	}
-
-	cDataPtr := (*C.uint8_t)(&data[0])
-	cDataSize := (C.size_t)(len(data))
-
-	// Retrive WebP features from data stream
-	if status := C.WebPGetFeatures(cDataPtr, cDataSize, &config.input); status != C.VP8_STATUS_OK {
-		return nil, fmt.Errorf("Could not get features from the data stream, return %s", statusString(status))
-	}
-
-	outWidth, outHeight := calcOutputSize(config)
-	buf := (*C.WebPYUVABuffer)(unsafe.Pointer(&config.output.u[0]))
-
-	// Set up output configurations
-	colorSpace := YUV420
-	config.output.colorspace = C.MODE_YUV
-	if config.input.has_alpha > 0 {
-		colorSpace = YUV420A
-		config.output.colorspace = C.MODE_YUVA
-	}
-	config.output.is_external_memory = 1
-
-	// Allocate image and fill into buffer
-	img = NewYUVAImage(image.Rect(0, 0, outWidth, outHeight), colorSpace)
-	buf.y = (*C.uint8_t)(&img.Y[0])
-	buf.u = (*C.uint8_t)(&img.Cb[0])
-	buf.v = (*C.uint8_t)(&img.Cr[0])
-	buf.a = nil
-	buf.y_stride = C.int(img.YStride)
-	buf.u_stride = C.int(img.CStride)
-	buf.v_stride = C.int(img.CStride)
-	buf.a_stride = 0
-	buf.y_size = C.size_t(len(img.Y))
-	buf.u_size = C.size_t(len(img.Cb))
-	buf.v_size = C.size_t(len(img.Cr))
-	buf.a_size = 0
-
-	if config.input.has_alpha > 0 {
-		buf.a = (*C.uint8_t)(&img.A[0])
-		buf.a_stride = C.int(img.AStride)
-		buf.a_size = C.size_t(len(img.A))
-	}
-
-	if status := C.WebPDecode(cDataPtr, cDataSize, config); status != C.VP8_STATUS_OK {
-		return nil, fmt.Errorf("Could not decode data stream, return %s", statusString(status))
-	}
-
-	return
-}
-
 // DecodeRGBA decodes WebP image into RGBA image and returns it as an *image.RGBA.
 func DecodeRGBA(data []byte, options *DecoderOptions) (img *image.RGBA, err error) {
 	config, err := initDecoderConfig(options)
